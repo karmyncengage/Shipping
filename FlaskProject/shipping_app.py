@@ -52,6 +52,8 @@ class Shipping(db.Model):
     City = db.Column(db.String(100))
     Zip_Code = db.Column(db.String(20))
     State = db.Column(db.String(50))
+    # To Track the Shipping Status
+    Status = db.Column(db.String(50), nullable=False, default="Pending") 
 
 # Calculate shipping cost based on membership and selection
 def calculate_shipping_cost(customer_type, shipping_option):
@@ -77,6 +79,20 @@ def create_order():
         db.session.add(new_order)
         db.session.commit()
         return jsonify({"message": "Order created successfully!", "Shipping_Cost": shipping_cost}), 201
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/update-shipping-status/<int:shipping_id>', methods=['PUT'])
+def update_shipping_status(shipping_id):
+    try:
+        data = request.get_json()
+        shipping = Shipping.query.get(shipping_id)
+        if not shipping:
+            return jsonify({"error": "Shipping record not found"}), 404
+        shipping.Status = data.get("Status", shipping.Status)
+        db.session.commit()
+        return jsonify({"message": "Shipping status updated successfully!"}), 200
     except SQLAlchemyError as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
